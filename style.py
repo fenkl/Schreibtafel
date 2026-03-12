@@ -68,4 +68,11 @@ QListWidget::indicator {
 QListWidget::indicator:checked {
     background-color: #89b4fa;
 }
+
+QLabel#statusLabel {
+    font-size: 14px;
+    color: #a6adc8;
+    padding: 5px;
+    background-color: transparent;
+}
 """

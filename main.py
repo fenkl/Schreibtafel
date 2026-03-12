@@ -2,14 +2,16 @@ import sys
 import os
 import signal  # Wichtig für STRG+C
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-                             QLineEdit, QPushButton, QListWidget, QListWidgetItem)
-from PyQt5.QtCore import Qt
+                             QLineEdit, QPushButton, QListWidget, QListWidgetItem, QLabel)
+from PyQt5.QtCore import Qt, QTimer
 from task_manager import TaskManager
 from style import STYLESHEET
-
+import socket
 # --- NEU: Aktiviere die integrierte, moderne Qt-Bildschirmtastatur! ---
 # Wichtig: Muss vor der Erstellung der QApplication passieren
 # apt install qtvirtualkeyboard-plugin
+# apt install qml-module-qtquick2 qml-module-qtquick-window2 qml-module-qtquick-layouts qml-module-qt-labs-folderlistmodel qml-module-qtquick-controls2
+# apt install hunspell-de-de
 os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
 
 class TodoApp(QWidget):
@@ -19,13 +21,28 @@ class TodoApp(QWidget):
         self.init_ui()
         self.load_initial_tasks()
 
+        # Timer für WLAN-Check (alle 10 Sekunden)
+        self.status_timer = QTimer()
+        self.status_timer.timeout.connect(self.update_wifi_status)
+        self.status_timer.start(10000)
+        self.update_wifi_status()  # Sofortiger Check beim Start
+
+
     def init_ui(self):
         self.setWindowTitle('Pi Schreibtafel')
         self.showFullScreen()  # Kiosk-Modus
 
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(20, 10, 20, 20)
+        main_layout.setSpacing(10)
+
+        # --- Mini Status-Leiste ganz oben ---
+        status_layout = QHBoxLayout()
+        self.status_label = QLabel("Prüfe WLAN...")
+        self.status_label.setObjectName("statusLabel")
+        status_layout.addStretch()  # Schiebt die Anzeige nach rechts
+        status_layout.addWidget(self.status_label)
+        main_layout.addLayout(status_layout)
 
         # --- Eingabebereich ---
         input_layout = QHBoxLayout()
@@ -66,6 +83,17 @@ class TodoApp(QWidget):
         main_layout.addWidget(self.del_btn)
 
         self.setLayout(main_layout)
+
+    def update_wifi_status(self):
+        try:
+            # Versucht eine Verbindung zu Googles DNS-Server aufzubauen (Port 53)
+            socket.setdefaulttimeout(2)
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("8.8.8.8", 53))
+            self.status_label.setText("● WLAN Online")
+            self.status_label.setStyleSheet("color: #a6e3a1;")  # Sanftes Grün
+        except Exception:
+            self.status_label.setText("○ Offline")
+            self.status_label.setStyleSheet("color: #f38ba8;")  # Sanftes Rot
 
     def load_initial_tasks(self):
         self.task_list.blockSignals(True)
