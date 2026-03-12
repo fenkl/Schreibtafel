@@ -37,7 +37,7 @@ xset -dpms 2>/dev/null
 xset s noblank 2>/dev/null
 
 # Mauszeiger nach 0.1 Sekunden Inaktivität verstecken
-unclutter -idle 0.1 -root &
+#unclutter -idle 0.1 -root &
 
 # App starten (nutzt jetzt den dynamischen Pfad)
 /usr/bin/python3 "$DIR/main.py"
