@@ -27,25 +27,32 @@ wait_for_connection "github.com" "Github-Verbindung"
 git pull
 echo "git pull durchgeführt"
 
-# Kiosk-Settings für X11 (Viel stabiler für die Qt-Tastatur)
+
+# 1. Bildschirmschoner-Dämon beenden
+# Das verhindert, dass das System nach Inaktivität wieder einschläft
+killall swayidle 2>/dev/null
+
+# 2. Den Bildschirm explizit AUFWECKEN
+# --on * schaltet alle erkannten Wayland-Ausgänge ein
+wlopm --on \* 2>/dev/null
+
+# 3. Kiosk-Settings für X11 & Umgebung
 export DISPLAY=:0
 export QT_QPA_PLATFORM=xcb  # Zwingt X11-Modus
 export QT_IM_MODULE=qtvirtualkeyboard
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
 
-# Bildschirmschoner deaktivieren
+# 4. DPMS & Blanking auf X11-Ebene deaktivieren
+# Force on gibt den Befehl zum sofortigen Aufwachen
 xset s off 2>/dev/null
 xset -dpms 2>/dev/null
 xset s noblank 2>/dev/null
+xset dpms force on 2>/dev/null
 
 # Window Manager für X11 starten (Hält Fensterordnung ein)
 matchbox-window-manager -use_titlebar no &
 
 # Desktop-Elemente killen für sauberen Kiosk
 killall wf-panel-pi 2>/dev/null
-
-# damit der Bildschirm an bleibt
-
-killall swayidle 2>/dev/null
-
 
 /usr/bin/python3 "$DIR/main.py"
