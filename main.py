@@ -9,7 +9,8 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
 
 from style import STYLESHEET
 from task_manager import TaskManager
-
+from modules.config import Config # Import der neuen Config-Klasse
+import subprocess
 # --- INSTALLATIONSHINWEISE (Stand: März 2026, X11-Modus) ---
 # sudo apt install qtvirtualkeyboard-plugin qml-module-qtquick2 qml-module-qtquick-window2 \
 # qml-module-qtquick-layouts qml-module-qt-labs-folderlistmodel qml-module-qtquick-controls2 \
@@ -53,15 +54,21 @@ class SwipeListWidget(QListWidget):
 class TodoApp(QWidget):
     def __init__(self):
         super().__init__()
+        self.conf = Config()
+        self.log = self.conf.get_logger()
+        self.log.info("App startet...")
+
         self.task_manager = TaskManager()
+        self.display_on = True
         self.init_ui()
         self.load_initial_tasks()
 
         # Timer für WLAN & Uhrzeit (jede Sekunde)
+        # jetz als Zentraler Timer (1 Sekunde)
         self.status_timer = QTimer()
-        self.status_timer.timeout.connect(self.update_status_bar)
+        self.status_timer.timeout.connect(self.tick)
         self.status_timer.start(1000)
-        self.update_status_bar()  # Sofortiger Check
+        self.tick()
 
 
 
@@ -131,6 +138,38 @@ class TodoApp(QWidget):
         main_layout.addWidget(self.del_btn)
 
         self.setLayout(main_layout)
+
+    def tick(self):
+        """Wird jede Sekunde aufgerufen."""
+        now = QDateTime.currentDateTime()
+        self.time_label.setText(now.toString("hh:mm"))
+
+        # 1. update_status_bar-Check alle 30 Sek
+        if now.time().second() % 30 == 0:
+            self.update_status_bar()
+
+        # 2. Display-Power-Check jede Minute
+        if now.time().second() == 0:
+            self.check_display_power(now.time())
+
+    def check_display_power(self, current_time):
+        """Prüft, ob der Monitor an oder aus sein sollte."""
+        hour = current_time.hour()
+
+        # Logik: An zwischen WAKE_HOUR und SLEEP_HOUR
+        should_be_on = self.conf.WAKE_HOUR <= hour < self.conf.SLEEP_HOUR
+
+        if should_be_on != self.display_on:
+            self.display_on = should_be_on
+            state = "on" if self.display_on else "off"
+            self.log.info(f"Schalte Display {state.upper()} (Stunde: {hour})")
+
+            # Hardware-Befehl via wlopm (Wayland-Ebene)
+            try:
+                env = {"WAYLAND_DISPLAY": "wayland-0", "XDG_RUNTIME_DIR": "/run/user/1000"}
+                subprocess.run(["wlopm", f"--{state}", "*"], env=env)
+            except Exception as e:
+                self.log.error(f"Fehler bei wlopm: {e}")
 
     def update_status_bar(self):
         # 1. Uhrzeit aktualisieren
