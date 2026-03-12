@@ -17,6 +17,8 @@ from task_manager import TaskManager
 # apt install hunspell-de-de
 # apt install matchbox-window-manager
 os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
+os.environ["QT_QPA_PLATFORM"] = "wayland" # Erzwingt Wayland-Modus
+os.environ["QT_VIRTUALKEYBOARD_STYLE"] = "default" # Sorgt für stabiles Design
 
 class TodoApp(QWidget):
     def __init__(self):

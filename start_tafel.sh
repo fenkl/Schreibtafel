@@ -28,18 +28,10 @@ git pull
 echo "git pull durchgeführt"
 
 
-# Bildschirm freigeben
-export DISPLAY=:0
-
-# Versuchen, Bildschirmschoner abzustellen (Fehlermeldungen werden ignoriert, falls du auf Wayland bist)
-xset s off 2>/dev/null
-xset -dpms 2>/dev/null
-xset s noblank 2>/dev/null
-
-# Startet den Window-Manager ohne Titelleisten etc.
-# Das sorgt dafür, dass die Tastatur stabil über der App bleibt.
-matchbox-window-manager -use_titlebar no &
-
+# Kiosk-Settings für Wayland
+# Wir nutzen NICHT mehr DISPLAY=:0, sondern Wayland direkt
+export QT_QPA_PLATFORM=wayland
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
 
 # App starten (nutzt jetzt den dynamischen Pfad)
 /usr/bin/python3 "$DIR/main.py"
