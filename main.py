@@ -15,6 +15,7 @@ from task_manager import TaskManager
 # apt install qtvirtualkeyboard-plugin
 # apt install qml-module-qtquick2 qml-module-qtquick-window2 qml-module-qtquick-layouts qml-module-qt-labs-folderlistmodel qml-module-qtquick-controls2
 # apt install hunspell-de-de
+# apt install matchbox-window-manager
 os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
 
 class TodoApp(QWidget):
@@ -110,7 +111,7 @@ class TodoApp(QWidget):
         item = QListWidgetItem(text)
         item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
         item.setCheckState(Qt.Checked if is_done else Qt.Unchecked)
-        self.task_list.addItem(item)
+        self.task_list.insertItem(0, item)
 
     def add_task(self):
         text = self.input_field.text().strip()

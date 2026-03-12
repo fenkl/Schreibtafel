@@ -36,6 +36,10 @@ xset s off 2>/dev/null
 xset -dpms 2>/dev/null
 xset s noblank 2>/dev/null
 
+# Startet den Window-Manager ohne Titelleisten etc.
+# Das sorgt dafür, dass die Tastatur stabil über der App bleibt.
+matchbox-window-manager -use_titlebar no &
+
 
 # App starten (nutzt jetzt den dynamischen Pfad)
 /usr/bin/python3 "$DIR/main.py"
