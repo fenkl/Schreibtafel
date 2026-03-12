@@ -43,4 +43,9 @@ matchbox-window-manager -use_titlebar no &
 # Desktop-Elemente killen für sauberen Kiosk
 killall wf-panel-pi 2>/dev/null
 
+# damit der Bildschirm an bleibt
+
+killall swayidle 2>/dev/null
+
+
 /usr/bin/python3 "$DIR/main.py"
