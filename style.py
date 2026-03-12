@@ -75,4 +75,12 @@ QLabel#statusLabel {
     padding: 5px;
     background-color: transparent;
 }
+
+QLabel#timeLabel {
+    font-size: 24px;
+    font-weight: bold;
+    color: #cdd6f4;
+    padding-right: 15px;
+    background-color: transparent;
+}
 """
