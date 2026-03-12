@@ -10,12 +10,13 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
 from style import STYLESHEET
 from task_manager import TaskManager
 
-# --- NEU: Aktiviere die integrierte, moderne Qt-Bildschirmtastatur! ---
-# Wichtig: Muss vor der Erstellung der QApplication passieren
-# apt install qtvirtualkeyboard-plugin
-# apt install qml-module-qtquick2 qml-module-qtquick-window2 qml-module-qtquick-layouts qml-module-qt-labs-folderlistmodel qml-module-qtquick-controls2
-# apt install hunspell-de-de
-# apt install matchbox-window-manager
+# --- INSTALLATIONSHINWEISE (für ein sauberes Setup) ---
+# 1. Qt Virtual Keyboard & QML Module:
+# sudo apt install qtvirtualkeyboard-plugin qml-module-qtquick2 qml-module-qtquick-window2 \
+# qml-module-qtquick-layouts qml-module-qt-labs-folderlistmodel qml-module-qtquick-controls2
+# 2. Deutsche Rechtschreibung für die Tastatur:
+# sudo apt install hunspell-de-de
+# 3. WICHTIG: Kein matchbox-window-manager oder unclutter unter Wayland nutzen!
 os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
 os.environ["QT_QPA_PLATFORM"] = "wayland" # Erzwingt Wayland-Modus
 os.environ["QT_VIRTUALKEYBOARD_STYLE"] = "default" # Sorgt für stabiles Design
