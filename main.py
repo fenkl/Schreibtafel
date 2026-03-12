@@ -1,12 +1,15 @@
-import sys
 import os
 import signal  # Wichtig für STRG+C
+import socket
+import sys
+from PyQt5.QtGui import QCursor
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QLineEdit, QPushButton, QListWidget, QListWidgetItem, QLabel)
-from PyQt5.QtCore import Qt, QTimer
-from task_manager import TaskManager
+
 from style import STYLESHEET
-import socket
+from task_manager import TaskManager
+
 # --- NEU: Aktiviere die integrierte, moderne Qt-Bildschirmtastatur! ---
 # Wichtig: Muss vor der Erstellung der QApplication passieren
 # apt install qtvirtualkeyboard-plugin
@@ -31,6 +34,7 @@ class TodoApp(QWidget):
     def init_ui(self):
         self.setWindowTitle('Pi Schreibtafel')
         self.showFullScreen()  # Kiosk-Modus
+        self.setCursor(QCursor(Qt.CursorShape.BlankCursor))
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 10, 20, 20)
