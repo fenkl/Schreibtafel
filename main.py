@@ -3,7 +3,7 @@ import signal  # Wichtig für STRG+C
 import socket
 import sys
 from PyQt5.QtGui import QCursor
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QPoint
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QLineEdit, QPushButton, QListWidget, QListWidgetItem, QLabel)
 
@@ -18,6 +18,36 @@ from task_manager import TaskManager
 # WICHTIG: Alles auf X11 (xcb) setzen für stabile Tastatur
 os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
 os.environ["QT_QPA_PLATFORM"] = "xcb"
+
+
+# --- Spezial-Liste für Wischgesten ---
+class SwipeListWidget(QListWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.start_pos = None
+        self.swipe_threshold = 150  # Pixel, die gewischt werden müssen
+
+    def mousePressEvent(self, event):
+        self.start_pos = event.pos()
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self.start_pos:
+            end_pos = event.pos()
+            diff_x = end_pos.x() - self.start_pos.x()
+            diff_y = abs(end_pos.y() - self.start_pos.y())
+
+            # Wenn horizontal gewischt wurde (X weit, Y wenig)
+            if abs(diff_x) > self.swipe_threshold and diff_y < 50:
+                item = self.itemAt(self.start_pos)
+                if item:
+                    self.takeItem(self.row(item))
+                    # Signalisiere der Haupt-App, dass gespeichert werden muss
+                    if hasattr(self.parent(), 'save_current_tasks'):
+                        self.parent().save_current_tasks()
+
+        self.start_pos = None
+        super().mouseReleaseEvent(event)
 
 
 class TodoApp(QWidget):
@@ -36,7 +66,7 @@ class TodoApp(QWidget):
 
     def init_ui(self):
         self.setWindowTitle('Pi Schreibtafel')
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.FramelessWindowHint)
         self.showFullScreen()
         self.setCursor(QCursor(Qt.CursorShape.BlankCursor))
 
@@ -68,8 +98,8 @@ class TodoApp(QWidget):
         input_layout.addWidget(self.input_field)
         input_layout.addWidget(self.add_btn)
 
-        # --- Listenbereich ---
-        self.task_list = QListWidget()
+        # --- Wir nutzen hier die Swipe-Liste ---
+        self.task_list = SwipeListWidget(self)
         self.task_list.setFocusPolicy(Qt.NoFocus)
         self.task_list.itemChanged.connect(self.save_current_tasks)
 
