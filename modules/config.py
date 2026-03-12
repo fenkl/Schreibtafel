@@ -13,7 +13,7 @@ class Config:
             cls._instance.LOG_TO_STDOUT = True
             # NEU: Zeitgesteuerte Ruhezeiten (24h Format)
             cls._instance.WAKE_HOUR = 7   # 07:00 Uhr an
-            cls._instance.SLEEP_HOUR = 22  # 22:00 Uhr aus
+            cls._instance.SLEEP_HOUR = 1  # 22:00 Uhr aus
         return cls._instance
 
     def __init__(self):
