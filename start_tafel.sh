@@ -27,12 +27,20 @@ wait_for_connection "github.com" "Github-Verbindung"
 git pull
 echo "git pull durchgeführt"
 
+# Kiosk-Settings für X11 (Viel stabiler für die Qt-Tastatur)
 export DISPLAY=:0
-export QT_QPA_PLATFORM=wayland
-export XDG_RUNTIME_DIR=/run/user/$(id -u)
+export QT_QPA_PLATFORM=xcb  # Zwingt X11-Modus
+export QT_IM_MODULE=qtvirtualkeyboard
 
-# NEU: Debug-Logging für die Tastatur aktivieren
-export QT_LOGGING_RULES="qt.virtualkeyboard.debug=true"
+# Bildschirmschoner deaktivieren
+xset s off 2>/dev/null
+xset -dpms 2>/dev/null
+xset s noblank 2>/dev/null
 
-# App starten und ALLES (stdout & stderr) in schreibtafel.log schreiben
-/usr/bin/python3 "$DIR/main.py" > "$DIR/schreibtafel.log" 2>&1
+# Window Manager für X11 starten (Hält Fensterordnung ein)
+matchbox-window-manager -use_titlebar no &
+
+# Desktop-Elemente killen für sauberen Kiosk
+killall wf-panel-pi 2>/dev/null
+
+/usr/bin/python3 "$DIR/main.py"

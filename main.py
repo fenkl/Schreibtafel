@@ -10,19 +10,15 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
 from style import STYLESHEET
 from task_manager import TaskManager
 
-# --- INSTALLATIONSHINWEISE (für ein sauberes Setup) ---
-# 1. Qt Virtual Keyboard & QML Module:
+# --- INSTALLATIONSHINWEISE (Stand: März 2026, X11-Modus) ---
 # sudo apt install qtvirtualkeyboard-plugin qml-module-qtquick2 qml-module-qtquick-window2 \
-# qml-module-qtquick-layouts qml-module-qt-labs-folderlistmodel qml-module-qtquick-controls2
-# 2. Deutsche Rechtschreibung für die Tastatur:
-# sudo apt install hunspell-de-de
-# 3. WICHTIG: Kein matchbox-window-manager oder unclutter unter Wayland nutzen!
+# qml-module-qtquick-layouts qml-module-qt-labs-folderlistmodel qml-module-qtquick-controls2 \
+# hunspell-de-de matchbox-window-manager
+
+# WICHTIG: Alles auf X11 (xcb) setzen für stabile Tastatur
 os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
-os.environ["QT_QPA_PLATFORM"] = "wayland" # Erzwingt Wayland-Modus
-os.environ["QT_VIRTUALKEYBOARD_STYLE"] = "default" # Sorgt für stabiles Design
-# Verhindert, dass das System versucht, das Fenster zu "dekorieren"
-# oder zu verschieben, was oft den Fokus-Verlust auslöst
-os.environ["QT_WAYLAND_DISABLE_WINDOWDECORATION"] = "1"
+os.environ["QT_QPA_PLATFORM"] = "xcb"
+
 
 class TodoApp(QWidget):
     def __init__(self):
@@ -74,6 +70,7 @@ class TodoApp(QWidget):
 
         # --- Listenbereich ---
         self.task_list = QListWidget()
+        self.task_list.setFocusPolicy(Qt.NoFocus)
         self.task_list.itemChanged.connect(self.save_current_tasks)
 
         # --- Drag & Drop (Sortierfunktion) ---
