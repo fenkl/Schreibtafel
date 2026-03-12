@@ -20,6 +20,9 @@ from task_manager import TaskManager
 os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
 os.environ["QT_QPA_PLATFORM"] = "wayland" # Erzwingt Wayland-Modus
 os.environ["QT_VIRTUALKEYBOARD_STYLE"] = "default" # Sorgt für stabiles Design
+# Verhindert, dass das System versucht, das Fenster zu "dekorieren"
+# oder zu verschieben, was oft den Fokus-Verlust auslöst
+os.environ["QT_WAYLAND_DISABLE_WINDOWDECORATION"] = "1"
 
 class TodoApp(QWidget):
     def __init__(self):
@@ -37,7 +40,8 @@ class TodoApp(QWidget):
 
     def init_ui(self):
         self.setWindowTitle('Pi Schreibtafel')
-        self.showFullScreen()  # Kiosk-Modus
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.showFullScreen()
         self.setCursor(QCursor(Qt.CursorShape.BlankCursor))
 
         main_layout = QVBoxLayout()
