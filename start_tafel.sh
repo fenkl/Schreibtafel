@@ -27,11 +27,12 @@ wait_for_connection "github.com" "Github-Verbindung"
 git pull
 echo "git pull durchgeführt"
 
-
-# Kiosk-Settings für Wayland
-# Wir nutzen NICHT mehr DISPLAY=:0, sondern Wayland direkt
+export DISPLAY=:0
 export QT_QPA_PLATFORM=wayland
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
 
-# App starten (nutzt jetzt den dynamischen Pfad)
-/usr/bin/python3 "$DIR/main.py"
+# NEU: Debug-Logging für die Tastatur aktivieren
+export QT_LOGGING_RULES="qt.virtualkeyboard.debug=true"
+
+# App starten und ALLES (stdout & stderr) in schreibtafel.log schreiben
+/usr/bin/python3 "$DIR/main.py" > "$DIR/schreibtafel.log" 2>&1
