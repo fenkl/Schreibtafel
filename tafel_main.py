@@ -33,22 +33,36 @@ class TafelWidget(QWidget):
         self.brush_size = 4
         self.brush_color = QColor("#ecf0f1") # Kreideweiß
         self.brush_mode = "pen" # "pen" oder "eraser"
+        self.loaded = False # Flag, ob das Bild schon einmal geladen wurde
         
         # Pfad für die Persistenz (Speichert die Tafel als Bild)
         self.save_path = "tafel_content.png"
 
     def resizeEvent(self, event):
         """Passt das Bild an, wenn die Fenstergröße sich ändert."""
-        self.log.debug(f"TafelWidget resize: {event.size().width()}x{event.size().height()}")
-        if self.image.size() != self.size():
-            new_image = QImage(self.size(), QImage.Format_ARGB32)
+        new_size = event.size()
+        if new_size.isEmpty():
+            return
+
+        self.log.debug(f"TafelWidget resize: {new_size.width()}x{new_size.height()}")
+        
+        if self.image.size() != new_size:
+            new_image = QImage(new_size, QImage.Format_ARGB32)
             new_image.fill(Qt.transparent)
-            painter = QPainter(new_image)
-            if painter.isActive():
-                painter.drawImage(QPoint(0, 0), self.image)
-                painter.end()
+            
+            # Kopiere altes Bild ins neue, falls vorhanden
+            if not self.image.isNull():
+                painter = QPainter(new_image)
+                if painter.isActive():
+                    painter.drawImage(QPoint(0, 0), self.image)
+                    painter.end()
+            
             self.image = new_image
-            self.load_tafel() # Versuche, das gespeicherte Bild zu laden
+            
+            # Lade das Bild nur beim ersten Mal, wenn wir eine gültige Größe haben
+            if not self.loaded:
+                self.load_tafel()
+                self.loaded = True
 
     def paintEvent(self, event):
         """Zeichnet das gespeicherte Bild auf das Widget."""
@@ -68,7 +82,14 @@ class TafelWidget(QWidget):
 
     def mouseMoveEvent(self, event):
         if (event.buttons() & Qt.LeftButton) and self.drawing:
+            if self.image.isNull():
+                return
+                
             painter = QPainter(self.image)
+            if not painter.isActive():
+                self.log.error("mouseMoveEvent: QPainter konnte nicht gestartet werden.")
+                return
+                
             painter.setRenderHint(QPainter.Antialiasing)
             
             if self.brush_mode == "eraser":
@@ -110,6 +131,10 @@ class TafelWidget(QWidget):
 
     def load_tafel(self):
         """Lädt den gespeicherten Inhalt, falls vorhanden."""
+        if self.image.isNull():
+            self.log.error("load_tafel: self.image ist null, kann nicht laden.")
+            return
+
         if os.path.exists(self.save_path):
             self.log.info(f"Lade Tafelbild von {self.save_path}")
             loaded_image = QImage(self.save_path)
@@ -121,7 +146,7 @@ class TafelWidget(QWidget):
                     painter.end()
                     self.update()
                 else:
-                    self.log.error("QPainter konnte nicht auf self.image gestartet werden!")
+                    self.log.error(f"QPainter konnte nicht auf self.image ({self.image.width()}x{self.image.height()}) gestartet werden!")
             else:
                 self.log.warning(f"Tafelbild konnte nicht geladen werden (isNull): {self.save_path}")
         else:
