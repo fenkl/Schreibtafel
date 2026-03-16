@@ -1,3 +1,8 @@
+# --- UNTERSCHIED ZU MAIN.PY ---
+# tafel_main.py: Fokus auf freies Zeichnen (wie eine echte Schultafel).
+#               Keine Handschrifterkennung, kein Aufgaben-Management.
+#               Speichert das gesamte Bild als "tafel_content.png".
+
 import os
 import signal
 import socket
@@ -93,6 +98,11 @@ class TafelWidget(QWidget):
                 painter.drawImage(self.image.rect(), loaded_image, loaded_image.rect())
                 painter.end()
                 self.update()
+
+# --- UNTERSCHIED ZU MAIN.PY ---
+# tafel_main.py: Fokus auf freies Zeichnen (wie eine echte Schultafel).
+#               Keine Handschrifterkennung, kein Aufgaben-Management.
+#               Speichert das gesamte Bild als "tafel_content.png".
 
 class TafelApp(QWidget):
     def __init__(self):

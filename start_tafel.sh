@@ -88,4 +88,14 @@ matchbox-window-manager -use_titlebar no &
 # Verhindert "Illegal instruction" (SIGILL) bei einigen Torch/Numpy Versionen auf ARM
 export OPENBLAS_CORETYPE=ARMV8
 
-"$DIR/.venv/bin/python3" "$DIR/main.py"
+# --- MODUS-AUSWAHL ---
+APP="main.py"
+ARGS=""
+
+if [ "$1" == "schultafel" ]; then
+    echo "Schultafel-Modus erkannt!"
+    APP="tafel_main.py"
+    ARGS="schultafel"
+fi
+
+"$DIR/.venv/bin/python3" "$DIR/$APP" $ARGS

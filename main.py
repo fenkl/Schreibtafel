@@ -1,3 +1,8 @@
+# --- UNTERSCHIED ZU TAFEL_MAIN.PY ---
+# main.py: Fokus auf Aufgabenliste (Todo-Liste) mit Handschrifterkennung (HWR).
+#          Bietet eine strukturierte Liste von Aufgaben, die abgehakt oder gewischt werden können.
+#          Nutzt DrawingWidget für die Eingabe und HWRManager für die Texterkennung.
+
 import os
 import signal  # Wichtig für STRG+C
 import socket
@@ -53,6 +58,11 @@ class SwipeListWidget(QListWidget):
         self.start_pos = None
         super().mouseReleaseEvent(event)
 
+
+# --- UNTERSCHIED ZU TAFEL_MAIN.PY ---
+# main.py: Fokus auf Aufgabenliste (Todo-Liste) mit Handschrifterkennung (HWR).
+#          Bietet eine strukturierte Liste von Aufgaben, die abgehakt oder gewischt werden können.
+#          Nutzt DrawingWidget für die Eingabe und HWRManager für die Texterkennung.
 
 class TodoApp(QWidget):
     def __init__(self):
