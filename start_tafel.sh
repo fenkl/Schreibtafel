@@ -38,9 +38,9 @@ fi
 # Sicherstellen, dass PyQt5 verfügbar ist (entweder in venv oder via System-Pakete)
 if ! "$DIR/.venv/bin/python3" -c "import PyQt5" &>/dev/null; then
     echo "PyQt5 nicht gefunden. Prüfe System-Installation..."
-    if ! dpkg -l python3-pyqt5 &>/dev/null; then
-        echo "Installiere python3-pyqt5 via apt..."
-        sudo apt update && sudo apt install -y python3-pyqt5
+    if ! dpkg -l python3-pyqt5 tesseract-ocr tesseract-ocr-deu &>/dev/null; then
+        echo "Installiere System-Pakete (PyQt5, Tesseract) via apt..."
+        sudo apt update && sudo apt install -y python3-pyqt5 tesseract-ocr tesseract-ocr-deu
     fi
     # Falls die venv bereits existierte, aber ohne System-Pakete, muss sie neu erstellt werden
     echo "Re-initialisiere venv mit --system-site-packages..."
@@ -77,5 +77,9 @@ killall wf-panel-pi 2>/dev/null
 
 # Window Manager für X11 (Hält die Tastatur im Vordergrund)
 matchbox-window-manager -use_titlebar no &
+
+# --- PI OPTIMIERUNGEN ---
+# Verhindert "Illegal instruction" (SIGILL) bei einigen Torch/Numpy Versionen auf ARM
+export OPENBLAS_CORETYPE=ARMV8
 
 "$DIR/.venv/bin/python3" "$DIR/main.py"
