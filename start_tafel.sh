@@ -54,4 +54,4 @@ killall wf-panel-pi 2>/dev/null
 # Window Manager für X11 (Hält die Tastatur im Vordergrund)
 matchbox-window-manager -use_titlebar no &
 
-/usr/bin/python3 "$DIR/main.py"
+/usr/bin/python3 "$DIR/main.py" > "$DIR"/main.log 2>&1
