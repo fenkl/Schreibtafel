@@ -24,6 +24,7 @@ class TafelWidget(QWidget):
     """Eine interaktive Zeichenfläche (Tafel)."""
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.log = Config().get_logger()
         # Initialisiere mit einer vernünftigen Standardgröße, resizeEvent passt es später an
         self.image = QImage(1024, 768, QImage.Format_ARGB32)
         self.image.fill(Qt.transparent)
@@ -31,18 +32,21 @@ class TafelWidget(QWidget):
         self.last_point = QPoint()
         self.brush_size = 4
         self.brush_color = QColor("#ecf0f1") # Kreideweiß
+        self.brush_mode = "pen" # "pen" oder "eraser"
         
         # Pfad für die Persistenz (Speichert die Tafel als Bild)
         self.save_path = "tafel_content.png"
 
     def resizeEvent(self, event):
         """Passt das Bild an, wenn die Fenstergröße sich ändert."""
+        self.log.debug(f"TafelWidget resize: {event.size().width()}x{event.size().height()}")
         if self.image.size() != self.size():
             new_image = QImage(self.size(), QImage.Format_ARGB32)
             new_image.fill(Qt.transparent)
             painter = QPainter(new_image)
-            painter.drawImage(QPoint(0, 0), self.image)
-            painter.end()
+            if painter.isActive():
+                painter.drawImage(QPoint(0, 0), self.image)
+                painter.end()
             self.image = new_image
             self.load_tafel() # Versuche, das gespeicherte Bild zu laden
 
@@ -53,11 +57,9 @@ class TafelWidget(QWidget):
         # Zeichne den Tafelhintergrund (Dunkles Schiefergrün)
         canvas_painter.fillRect(self.rect(), QColor("#2d3436"))
         
-        # Optional: Ein paar "Kreidereste" simulieren (Subtiles Rauschen/Textur)
-        # Für jetzt lassen wir es clean.
-        
         # Zeichne die Linien obendrauf
         canvas_painter.drawImage(self.rect(), self.image, self.image.rect())
+        canvas_painter.end()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -67,9 +69,22 @@ class TafelWidget(QWidget):
     def mouseMoveEvent(self, event):
         if (event.buttons() & Qt.LeftButton) and self.drawing:
             painter = QPainter(self.image)
-            painter.setPen(QPen(self.brush_color, self.brush_size, 
-                               Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+            painter.setRenderHint(QPainter.Antialiasing)
+            
+            if self.brush_mode == "eraser":
+                # Radiergummi-Modus: Wir zeichnen mit Transparenz und CompositionMode_Clear
+                painter.setCompositionMode(QPainter.CompositionMode_Clear)
+                # Radierer etwas größer machen
+                painter.setPen(QPen(Qt.transparent, self.brush_size * 10, 
+                                   Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+            else:
+                # Normaler Stift-Modus
+                painter.setCompositionMode(QPainter.CompositionMode_SourceOver)
+                painter.setPen(QPen(self.brush_color, self.brush_size, 
+                                   Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+                
             painter.drawLine(self.last_point, event.pos())
+            painter.end()
             self.last_point = event.pos()
             self.update()
 
@@ -80,24 +95,37 @@ class TafelWidget(QWidget):
 
     def clear_tafel(self):
         """Löscht den Inhalt (Wegwischen)."""
+        self.log.info("Tafel wird komplett gelöscht (Wegwischen).")
         self.image.fill(Qt.transparent)
         self.save_tafel()
         self.update()
 
     def save_tafel(self):
         """Speichert den Inhalt als PNG."""
-        self.image.save(self.save_path)
+        success = self.image.save(self.save_path)
+        if success:
+            self.log.debug(f"Tafel erfolgreich gespeichert unter {self.save_path}")
+        else:
+            self.log.error(f"Fehler beim Speichern der Tafel unter {self.save_path}")
 
     def load_tafel(self):
         """Lädt den gespeicherten Inhalt, falls vorhanden."""
         if os.path.exists(self.save_path):
+            self.log.info(f"Lade Tafelbild von {self.save_path}")
             loaded_image = QImage(self.save_path)
             if not loaded_image.isNull():
                 painter = QPainter(self.image)
-                # Skaliere das Bild, falls nötig, oder zeichne es einfach
-                painter.drawImage(self.image.rect(), loaded_image, loaded_image.rect())
-                painter.end()
-                self.update()
+                if painter.isActive():
+                    # Skaliere das Bild, falls nötig, oder zeichne es einfach
+                    painter.drawImage(self.image.rect(), loaded_image, loaded_image.rect())
+                    painter.end()
+                    self.update()
+                else:
+                    self.log.error("QPainter konnte nicht auf self.image gestartet werden!")
+            else:
+                self.log.warning(f"Tafelbild konnte nicht geladen werden (isNull): {self.save_path}")
+        else:
+            self.log.debug("Kein Tafelbild zum Laden gefunden.")
 
 # --- UNTERSCHIED ZU MAIN.PY ---
 # tafel_main.py: Fokus auf freies Zeichnen (wie eine echte Schultafel).
@@ -157,24 +185,49 @@ class TafelApp(QWidget):
         overlay_layout.addStretch()
         overlay_layout.addWidget(self.status_label)
         
+        # Button-Container für die Steuerung
+        self.controls_container = QWidget(self)
+        self.controls_layout = QHBoxLayout(self.controls_container)
+        self.controls_layout.setSpacing(20)
+
+        # Radierer-Umschalter
+        self.eraser_btn = QPushButton("🧽 Radierer")
+        self.eraser_btn.setObjectName("eraserBtn")
+        self.eraser_btn.setMinimumSize(160, 70)
+        self.eraser_btn.clicked.connect(self.toggle_eraser)
+        self.eraser_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(137, 180, 250, 180);
+                border: 2px solid #89b4fa;
+                border-radius: 15px;
+                font-size: 18px;
+                color: #1e1e2e;
+            }
+            QPushButton:pressed {
+                background-color: #89b4fa;
+            }
+        """)
+
         # Wegwisch-Button (Schwamm-Optik)
-        self.wipe_btn = QPushButton("🧹 Wegwischen")
+        self.wipe_btn = QPushButton("🧹 Alles löschen")
         self.wipe_btn.setObjectName("deleteBtn")
-        self.wipe_btn.setParent(self)
         self.wipe_btn.setMinimumSize(180, 70)
-        self.wipe_btn.move(20, self.height() - 90) # Positionieren wir manuell
-        self.wipe_btn.clicked.connect(self.tafel.clear_tafel)
+        self.wipe_btn.clicked.connect(self.confirm_clear)
         self.wipe_btn.setStyleSheet("""
             QPushButton {
                 background-color: rgba(243, 139, 168, 180);
                 border: 2px solid #f38ba8;
                 border-radius: 15px;
                 font-size: 18px;
+                color: #1e1e2e;
             }
             QPushButton:pressed {
                 background-color: #f38ba8;
             }
         """)
+
+        self.controls_layout.addWidget(self.eraser_btn)
+        self.controls_layout.addWidget(self.wipe_btn)
 
         self.main_layout.addWidget(self.tafel_container)
         self.setLayout(self.main_layout)
@@ -184,13 +237,32 @@ class TafelApp(QWidget):
         self.showFullScreen()
 
     def resizeEvent(self, event):
-        """Sorgt dafür, dass das Overlay und der Button richtig positioniert bleiben."""
+        """Sorgt dafür, dass das Overlay und die Buttons richtig positioniert bleiben."""
         super().resizeEvent(event)
         # Sicherheitsprüfung, falls resizeEvent vor init_ui() fertig gefeuert wird
         if hasattr(self, 'overlay') and self.overlay:
             self.overlay.resize(self.width(), 80)
-        if hasattr(self, 'wipe_btn') and self.wipe_btn:
-            self.wipe_btn.move(self.width() - 200, self.height() - 90)
+        if hasattr(self, 'controls_container') and self.controls_container:
+            # Positioniere die Controls unten rechts
+            self.controls_container.adjustSize()
+            self.controls_container.move(self.width() - self.controls_container.width() - 20, 
+                                        self.height() - self.controls_container.height() - 20)
+
+    def toggle_eraser(self):
+        """Schaltet zwischen Stift und Radierer um."""
+        if self.tafel.brush_mode == "pen":
+            self.tafel.brush_mode = "eraser"
+            self.eraser_btn.setText("✏️ Stift")
+            self.log.info("Benutzer wechselt zu Radiergummi")
+        else:
+            self.tafel.brush_mode = "pen"
+            self.eraser_btn.setText("🧽 Radierer")
+            self.log.info("Benutzer wechselt zu Stift")
+
+    def confirm_clear(self):
+        """Löscht die Tafel nach Klick auf den Button."""
+        self.log.info("Benutzer hat 'Alles löschen' geklickt.")
+        self.tafel.clear_tafel()
 
     def tick(self):
         now = QDateTime.currentDateTime()
@@ -227,13 +299,19 @@ class TafelApp(QWidget):
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("8.8.8.8", 53))
                 self.status_label.setText("● WLAN Online")
                 self.status_label.setStyleSheet("color: #a6e3a1;")
-            except Exception:
+                self.log.debug("WLAN Status Check: Online")
+            except Exception as e:
                 self.status_label.setText("○ Offline")
                 self.status_label.setStyleSheet("color: #f38ba8;")
+                self.log.warning(f"WLAN Status Check: Offline ({e})")
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QApplication(sys.argv)
+    
+    log = Config().get_logger()
+    log.info(f"Tafel-Prozess gestartet. Argumente: {sys.argv}")
+    
     app.setStyleSheet(STYLESHEET)
     window = TafelApp()
     window.show()
