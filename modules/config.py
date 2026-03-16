@@ -16,6 +16,7 @@ class Config:
             cls._instance.SLEEP_HOUR = 1  # 01:00 Uhr aus
             # NEU: OCR-Einstellungen
             cls._instance.ENABLE_EASYOCR = True  # Kann auf False gesetzt werden, falls SIGILL auftritt
+            cls._instance.FORCE_TESSERACT = False # Erzwingt Tesseract, auch wenn EasyOCR verfügbar wäre
         return cls._instance
 
     def __init__(self):

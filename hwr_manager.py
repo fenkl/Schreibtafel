@@ -15,8 +15,11 @@ class HWRManager:
         self.logger = self.conf.get_logger()
 
         # Prüfe Config
-        if not getattr(self.conf, "ENABLE_EASYOCR", True):
-            self.logger.info("EasyOCR ist in der Konfiguration deaktiviert.")
+        if not getattr(self.conf, "ENABLE_EASYOCR", True) or getattr(self.conf, "FORCE_TESSERACT", False):
+            if getattr(self.conf, "FORCE_TESSERACT", False):
+                self.logger.info("Tesseract wird erzwungen (Config).")
+            else:
+                self.logger.info("EasyOCR ist in der Konfiguration deaktiviert.")
             self._init_tesseract()
             return
 
@@ -58,12 +61,23 @@ class HWRManager:
     def _init_tesseract(self):
         try:
             import pytesseract
+            import shutil
+            import os
+            
+            # Falls nicht im PATH, versuche Standard-Pi-Pfad
+            if not shutil.which("tesseract"):
+                if os.path.exists("/usr/bin/tesseract"):
+                    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+                else:
+                    self.logger.warning("Tesseract binary nicht gefunden. Versuche es trotzdem...")
+
             # Teste ob Tesseract installiert ist
             pytesseract.get_tesseract_version()
             self.use_tesseract = True
             self.logger.info("Pytesseract als Fallback initialisiert.")
         except Exception as te:
             self.logger.error(f"Pytesseract konnte nicht initialisiert werden: {te}")
+            self.logger.info("Tesseract kann mit 'sudo apt install tesseract-ocr tesseract-ocr-deu' installiert werden.")
 
     def recognize_text(self, qimage: QImage):
         if not self.reader and not self.use_tesseract:
