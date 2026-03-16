@@ -1,6 +1,9 @@
-PyQt5==5.15.11
-PyQt5-Qt5==5.15.2
-PyQt5_sip==12.18.0
+# PyQt5 (Auf Raspberry Pi besser via: sudo apt install python3-pyqt5)
+# Die Installation via pip schlägt auf ARM oft fehl, da qmake fehlt.
+# PyQt5
+# PyQt5-Qt5
+# PyQt5_sip
+
 easyocr
 numpy
 opencv-python-headless
