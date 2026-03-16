@@ -123,7 +123,6 @@ class TafelApp(QWidget):
     def init_ui(self):
         self.setWindowTitle('Digitale Tafel')
         self.setWindowFlags(Qt.FramelessWindowHint)
-        self.showFullScreen()
         self.setCursor(QCursor(Qt.CursorShape.BlankCursor))
 
         # Wir nutzen ein Stacked Layout oder überlagern die Widgets,
@@ -179,12 +178,19 @@ class TafelApp(QWidget):
 
         self.main_layout.addWidget(self.tafel_container)
         self.setLayout(self.main_layout)
+        
+        # Erst ganz am Ende Fullscreen aktivieren, damit alle Widgets da sind
+        # wenn das erste resizeEvent feuert.
+        self.showFullScreen()
 
     def resizeEvent(self, event):
         """Sorgt dafür, dass das Overlay und der Button richtig positioniert bleiben."""
         super().resizeEvent(event)
-        self.overlay.resize(self.width(), 80)
-        self.wipe_btn.move(self.width() - 200, self.height() - 90)
+        # Sicherheitsprüfung, falls resizeEvent vor init_ui() fertig gefeuert wird
+        if hasattr(self, 'overlay') and self.overlay:
+            self.overlay.resize(self.width(), 80)
+        if hasattr(self, 'wipe_btn') and self.wipe_btn:
+            self.wipe_btn.move(self.width() - 200, self.height() - 90)
 
     def tick(self):
         now = QDateTime.currentDateTime()

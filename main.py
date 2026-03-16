@@ -91,7 +91,6 @@ class TodoApp(QWidget):
     def init_ui(self):
         self.setWindowTitle('Pi Schreibtafel')
         self.setWindowFlags(Qt.FramelessWindowHint)
-        self.showFullScreen()
         self.setCursor(QCursor(Qt.CursorShape.BlankCursor))
 
         main_layout = QVBoxLayout()
@@ -170,6 +169,9 @@ class TodoApp(QWidget):
         main_layout.addLayout(bottom_layout)
 
         self.setLayout(main_layout)
+        
+        # Erst ganz am Ende Fullscreen aktivieren
+        self.showFullScreen()
 
     def tick(self):
         """Wird jede Sekunde aufgerufen."""
