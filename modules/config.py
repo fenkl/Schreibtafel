@@ -10,7 +10,7 @@ class Config:
             cls._instance.LOG_NAME = "Schreibtafel"
             cls._instance.LOGGER = None
             cls._instance.LOG_LEVEL = "INFO"
-            cls._instance.LOG_TO_STDOUT = True
+            cls._instance.LOG_TO_STDOUT = False
             # NEU: Zeitgesteuerte Ruhezeiten (24h Format)
             cls._instance.WAKE_HOUR = 7   # 07:00 Uhr an
             cls._instance.SLEEP_HOUR = 1  # 22:00 Uhr aus
