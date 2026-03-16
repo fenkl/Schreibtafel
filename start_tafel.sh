@@ -27,6 +27,15 @@ wait_for_connection "github.com" "Github-Verbindung"
 git pull
 echo "git pull durchgeführt"
 
+# --- VIRTUAL ENVIRONMENT ---
+if [ ! -d "$DIR/.venv" ]; then
+    echo "Erstelle virtuelle Umgebung (.venv)..."
+    /usr/bin/python3 -m venv "$DIR/.venv"
+fi
+
+echo "Installiere/Aktualisiere Requirements..."
+"$DIR/.venv/bin/pip" install -r "$DIR/requirements.txt"
+
 
 # --- BILDSCHIRM AUFWECKEN ---
 # wlopm braucht diese Info, um den Wayland-Monitor zu finden
@@ -54,4 +63,4 @@ killall wf-panel-pi 2>/dev/null
 # Window Manager für X11 (Hält die Tastatur im Vordergrund)
 matchbox-window-manager -use_titlebar no &
 
-/usr/bin/python3 "$DIR/main.py"
+"$DIR/.venv/bin/python3" "$DIR/main.py"

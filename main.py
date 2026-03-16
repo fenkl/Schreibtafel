@@ -10,15 +10,18 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
 from style import STYLESHEET
 from task_manager import TaskManager
 from modules.config import Config # Import der neuen Config-Klasse
+from drawing_widget import DrawingWidget
+from hwr_manager import HWRManager
 import subprocess
 # --- INSTALLATIONSHINWEISE (Stand: März 2026, X11-Modus) ---
 # sudo apt install qtvirtualkeyboard-plugin qml-module-qtquick2 qml-module-qtquick-window2 \
 # qml-module-qtquick-layouts qml-module-qt-labs-folderlistmodel qml-module-qtquick-controls2 \
 # hunspell-de-de matchbox-window-manager
 
-# WICHTIG: Alles auf X11 (xcb) setzen für stabile Tastatur
-os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
-os.environ["QT_QPA_PLATFORM"] = "xcb"
+# WICHTIG: Alles auf X11 (xcb) setzen für stabile Tastatur (nur auf Linux/Pi sinnvoll)
+if sys.platform.startswith("linux"):
+    os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
+    os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 
 # --- Spezial-Liste für Wischgesten ---
@@ -59,7 +62,9 @@ class TodoApp(QWidget):
         self.log.info("App startet...")
 
         self.task_manager = TaskManager()
+        self.hwr_manager = HWRManager()
         self.display_on = True
+        self.manual_override = False
         self.init_ui()
         self.load_initial_tasks()
 
@@ -98,21 +103,28 @@ class TodoApp(QWidget):
         status_layout.addWidget(self.status_label) # rechts
         main_layout.addLayout(status_layout)
 
-        # --- Eingabebereich ---
-        input_layout = QHBoxLayout()
+        # --- Eingabebereich (Tafel) ---
+        input_container = QVBoxLayout()
 
-        # Wir können wieder das ganz normale QLineEdit nutzen!
-        # Die Qt-Engine erkennt automatisch, dass es ein Touch-Screen ist
-        self.input_field = QLineEdit()
-        self.input_field.setPlaceholderText("Neues To-Do antippen...")
-        self.input_field.setMinimumHeight(60)
+        self.drawing_widget = DrawingWidget()
+        self.drawing_widget.setMinimumHeight(200)
+        self.drawing_widget.setObjectName("drawingBoard")
+
+        btn_layout = QHBoxLayout()
+
+        self.clear_btn = QPushButton("Tafel löschen")
+        self.clear_btn.setMinimumHeight(60)
+        self.clear_btn.clicked.connect(self.drawing_widget.clear)
 
         self.add_btn = QPushButton("Hinzufügen")
         self.add_btn.setMinimumHeight(60)
         self.add_btn.clicked.connect(self.add_task)
 
-        input_layout.addWidget(self.input_field)
-        input_layout.addWidget(self.add_btn)
+        btn_layout.addWidget(self.clear_btn)
+        btn_layout.addWidget(self.add_btn)
+
+        input_container.addWidget(self.drawing_widget)
+        input_container.addLayout(btn_layout)
 
         # --- Wir nutzen hier die Swipe-Liste ---
         self.task_list = SwipeListWidget(self)
@@ -126,16 +138,26 @@ class TodoApp(QWidget):
         # 2. Speichert die neue Reihenfolge auf der SD-Karte, wenn ein Item losgelassen wird
         self.task_list.model().rowsMoved.connect(self.save_current_tasks)
 
-        # --- Löschen-Button ---
-        self.del_btn = QPushButton("Erledigtes aufräumen")
+        # --- Untere Buttons ---
+        bottom_layout = QHBoxLayout()
+
+        self.del_btn = QPushButton("Aufräumen")
         self.del_btn.setObjectName("deleteBtn")
         self.del_btn.setMinimumHeight(60)
         self.del_btn.clicked.connect(self.remove_completed_tasks)
 
+        self.off_btn = QPushButton("Monitor Aus")
+        self.off_btn.setObjectName("offBtn")
+        self.off_btn.setMinimumHeight(60)
+        self.off_btn.clicked.connect(self.manual_display_off)
+
+        bottom_layout.addWidget(self.del_btn, 2)
+        bottom_layout.addWidget(self.off_btn, 1)
+
         # Alles zusammenbauen
-        main_layout.addLayout(input_layout)
+        main_layout.addLayout(input_container)
         main_layout.addWidget(self.task_list)
-        main_layout.addWidget(self.del_btn)
+        main_layout.addLayout(bottom_layout)
 
         self.setLayout(main_layout)
 
@@ -157,23 +179,48 @@ class TodoApp(QWidget):
         hour = current_time.hour()
 
         # Logik: An zwischen WAKE_HOUR und SLEEP_HOUR
-        # Unterstützt auch Zeitfenster über Mitternacht, z. B. 07:00 bis 01:00
         if self.conf.WAKE_HOUR < self.conf.SLEEP_HOUR:
             should_be_on = self.conf.WAKE_HOUR <= hour < self.conf.SLEEP_HOUR
         else:
             should_be_on = hour >= self.conf.WAKE_HOUR or hour < self.conf.SLEEP_HOUR
 
+        # Manuellen Override zurücksetzen, wenn die Automatik sowieso OFF schaltet
+        if self.manual_override and not should_be_on:
+            self.manual_override = False
+
+        # Wenn Override aktiv ist, überspringen wir das Einschalten
+        if self.manual_override:
+            return
+
         if should_be_on != self.display_on:
             self.display_on = should_be_on
-            state = "on" if self.display_on else "off"
-            self.log.info(f"Schalte Display {state.upper()} (Stunde: {hour})")
+            self.set_display_state(self.display_on)
 
-            # Hardware-Befehl via wlopm (Wayland-Ebene)
-            try:
-                env = {"WAYLAND_DISPLAY": "wayland-0", "XDG_RUNTIME_DIR": "/run/user/1000"}
-                subprocess.run(["wlopm", f"--{state}", "*"], env=env)
-            except Exception as e:
-                self.log.error(f"Fehler bei wlopm: {e}")
+    def manual_display_off(self):
+        """Manueller Befehl zum Ausschalten des Monitors."""
+        self.log.info("Display manuell ausgeschaltet")
+        self.display_on = False
+        self.manual_override = True
+        self.set_display_state(False)
+
+    def set_display_state(self, on):
+        """Führt den Hardware-Befehl aus."""
+        state = "on" if on else "off"
+        self.log.info(f"Setze Display-Hardware: {state.upper()}")
+        try:
+            # Nutze os.getuid() für Wayland-Pfad
+            uid = 1000
+            try: uid = os.getuid()
+            except AttributeError: pass
+            
+            env = {"WAYLAND_DISPLAY": "wayland-0", "XDG_RUNTIME_DIR": f"/run/user/{uid}"}
+            subprocess.run(["wlopm", f"--{state}", "*"], env=env)
+            
+            # Für X11 (DPMS) zusätzlich
+            env_x11 = {"DISPLAY": ":0"}
+            subprocess.run(["xset", "dpms", "force", state], env=env_x11)
+        except Exception as e:
+            self.log.error(f"Fehler bei Display-Steuerung: {e}")
 
     def update_status_bar(self):
         # 1. Uhrzeit aktualisieren
@@ -209,13 +256,17 @@ class TodoApp(QWidget):
         self.task_list.insertItem(0, item)
 
     def add_task(self):
-        text = self.input_field.text().strip()
-        if text:
-            self.create_list_item(text)
-            self.input_field.clear()
+        img = self.drawing_widget.get_image()
+        # Text erkennen via HWRManager
+        task_text = self.hwr_manager.recognize_text(img)
+
+        if task_text:
+            self.create_list_item(task_text)
+            self.drawing_widget.clear()
             self.save_current_tasks()
-            # Sehr wichtig: Fokus vom Textfeld nehmen, damit die Tastatur sich wieder einklappt!
-            self.input_field.clearFocus()
+            self.log.info(f"Aufgabe hinzugefügt: {task_text}")
+        else:
+            self.log.info("Kein Text erkannt.")
 
     def remove_completed_tasks(self):
         for i in range(self.task_list.count() - 1, -1, -1):

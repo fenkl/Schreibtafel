@@ -17,6 +17,12 @@ QLineEdit:focus {
     border: 2px solid #89b4fa; /* Blauer Rahmen bei Eingabe */
 }
 
+#drawingBoard {
+    border: 3px solid #313244;
+    border-radius: 15px;
+    background-color: #181825;
+}
+
 QPushButton {
     background-color: #89b4fa; /* Blaues Accent */
     color: #1e1e2e;
@@ -37,6 +43,15 @@ QPushButton#deleteBtn {
 
 QPushButton#deleteBtn:pressed {
     background-color: #eba0ac;
+}
+
+QPushButton#offBtn {
+    background-color: #45475a; /* Dunkleres Grau */
+    color: #cdd6f4;
+}
+
+QPushButton#offBtn:pressed {
+    background-color: #585b70;
 }
 
 QListWidget {

@@ -58,7 +58,8 @@ def setup_logging(logger_name: str = "wohnungssuche_bot",
     logger.setLevel(log_level)
 
     # Handler konfigurieren, abhängig davon, ob ins stdout oder Syslog geschrieben werden soll
-    if log_to_stdout:
+    # Auf Windows gibt es kein /dev/log, daher dort immer stdout als Fallback
+    if log_to_stdout or sys.platform == "win32":
         log_handler = logging.StreamHandler(sys.stdout)
         formatter = logging.Formatter(
             f"%(asctime)s - {logger_name} - %(levelname)s - [%(filename)s.%(funcName)s:%(lineno)s] - %(message)s"
