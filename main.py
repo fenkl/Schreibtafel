@@ -157,7 +157,11 @@ class TodoApp(QWidget):
         hour = current_time.hour()
 
         # Logik: An zwischen WAKE_HOUR und SLEEP_HOUR
-        should_be_on = self.conf.WAKE_HOUR <= hour < self.conf.SLEEP_HOUR
+        # Unterstützt auch Zeitfenster über Mitternacht, z. B. 07:00 bis 01:00
+        if self.conf.WAKE_HOUR < self.conf.SLEEP_HOUR:
+            should_be_on = self.conf.WAKE_HOUR <= hour < self.conf.SLEEP_HOUR
+        else:
+            should_be_on = hour >= self.conf.WAKE_HOUR or hour < self.conf.SLEEP_HOUR
 
         if should_be_on != self.display_on:
             self.display_on = should_be_on
